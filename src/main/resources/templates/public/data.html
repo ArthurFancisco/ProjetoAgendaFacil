@@ -13,47 +13,118 @@
         <a class="btn ghost" th:href="@{/b/{slug}/horarios(slug=${establishment.slug}, serviceId=${form.serviceId}, professionalId=${form.professionalId}, date=${form.date})}">Voltar</a>
     </div>
 </header>
-<main class="container hero">
-    <div class="grid">
-        <section class="col-7 card">
+
+<main class="container hero public-flow">
+    <section class="public-hero">
+        <article class="card hero-card">
+            <span class="hero-note">Preencha apenas o necessario</span>
             <h1>Confirme seus dados</h1>
-            <p class="muted">Use um WhatsApp real. O estabelecimento pode aprovar clientes novos antes de confirmar o horário.</p>
+            <p class="muted">Nao precisa criar conta. Informe seu nome e um WhatsApp valido com DDD para o estabelecimento confirmar o horario.</p>
+            <div class="alert warning">Nao pedimos CPF, endereco nem e-mail.</div>
+        </article>
+
+        <aside class="card hero-card">
+            <h2>Resumo do agendamento</h2>
+            <div class="summary-list">
+                <div class="summary-item">
+                    <strong>Servico</strong>
+                    <span th:text="${service.name}">Servico</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Profissional</strong>
+                    <span th:text="${professional.name}">Profissional</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Dia</strong>
+                    <span th:text="${#temporals.format(form.date, 'dd/MM/yyyy')}">18/06/2026</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Horario</strong>
+                    <span th:text="${#temporals.format(form.startTime, 'HH:mm')}">15:00</span>
+                </div>
+            </div>
+        </aside>
+    </section>
+
+    <section class="grid">
+        <section class="col-7 card">
+            <h2>Seus dados</h2>
+            <p class="muted">Clientes novos podem passar por aprovacao rapida. Enquanto isso, o horario fica reservado temporariamente.</p>
+
             <div class="alert error" th:if="${errorMessage}" th:text="${errorMessage}">Erro</div>
-            <form th:action="@{/b/{slug}/agendar(slug=${establishment.slug})}" th:object="${form}" method="post" class="stack" autocomplete="on">
+
+            <form th:action="@{/b/{slug}/agendar(slug=${establishment.slug})}"
+                  th:object="${form}"
+                  method="post"
+                  class="stack"
+                  autocomplete="on">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input type="hidden" th:field="*{serviceId}">
                 <input type="hidden" th:field="*{professionalId}">
                 <input type="hidden" th:field="*{date}">
                 <input type="hidden" th:field="*{startTime}">
+
                 <div class="field hidden" aria-hidden="true">
                     <label for="website">Site</label>
                     <input id="website" th:field="*{website}" tabindex="-1" autocomplete="off">
                 </div>
+
                 <div class="field">
                     <label for="clientName">Seu nome</label>
-                    <input id="clientName" th:field="*{clientName}" required maxlength="80" placeholder="Ex.: Lucas Silva">
+                    <input id="clientName"
+                           th:field="*{clientName}"
+                           required
+                           maxlength="80"
+                           placeholder="Ex.: Maria Silva"
+                           autocomplete="name">
                 </div>
+
                 <div class="field">
                     <label for="clientPhone">WhatsApp com DDD</label>
-                    <input id="clientPhone" th:field="*{clientPhone}" required maxlength="40" data-phone placeholder="(17) 99999-9999" inputmode="tel">
+                    <input id="clientPhone"
+                           th:field="*{clientPhone}"
+                           required
+                           maxlength="40"
+                           data-phone
+                           placeholder="(11) 99999-9999"
+                           inputmode="tel"
+                           autocomplete="tel"
+                           aria-describedby="phoneHelp">
+                    <p id="phoneHelp" class="help-text">Use o numero que voce mais atende. Exemplo: (11) 99999-9999.</p>
                 </div>
+
                 <div class="field">
-                    <label for="observation">Observação opcional</label>
-                    <textarea id="observation" th:field="*{observation}" maxlength="255" placeholder="Ex.: quero corte baixo nas laterais"></textarea>
+                    <label for="observation">Observacao opcional</label>
+                    <textarea id="observation"
+                              th:field="*{observation}"
+                              maxlength="255"
+                              placeholder="Ex.: prefiro atendimento mais cedo"></textarea>
                 </div>
+
                 <button class="btn full" type="submit">Confirmar agendamento</button>
             </form>
         </section>
+
         <aside class="col-5 card">
-            <h2>Resumo</h2>
-            <p><strong>Serviço:</strong> <span th:text="${service != null ? service.name : 'Serviço escolhido'}">Serviço</span></p>
-            <p><strong>Profissional:</strong> <span th:text="${professional != null ? professional.name : 'Profissional escolhido'}">Profissional</span></p>
-            <p><strong>Dia:</strong> <span th:text="${#temporals.format(form.date, 'dd/MM/yyyy')}">18/06/2026</span></p>
-            <p><strong>Horário:</strong> <span th:text="${#temporals.format(form.startTime, 'HH:mm')}">15:00</span></p>
-            <div class="alert warning">Para proteger a agenda contra horários falsos, clientes novos podem depender de aprovação rápida pelo estabelecimento.</div>
+            <h2>Antes de finalizar</h2>
+            <div class="summary-list">
+                <div class="summary-item">
+                    <strong>Importante</strong>
+                    <span>Horarios confirmados ou pendentes ficam indisponiveis para outros clientes.</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Se o estabelecimento recusar</strong>
+                    <span>O horario volta a ficar disponivel na mesma hora.</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Seguranca da agenda</strong>
+                    <span>O envio continua protegido e feito com validacao no servidor.</span>
+                </div>
+            </div>
         </aside>
-    </div>
+    </section>
 </main>
+
 <script th:src="@{/js/app.js}"></script>
 </body>
 </html>

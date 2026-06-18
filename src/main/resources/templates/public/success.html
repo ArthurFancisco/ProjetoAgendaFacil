@@ -7,16 +7,40 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
-<main class="container hero">
-    <section class="card">
-        <span class="badge" th:text="${establishment.name}">Estabelecimento</span>
-        <h1>Agendamento recebido</h1>
-        <p class="muted">Seu pedido foi enviado para a agenda. Se for seu primeiro horário ou se o estabelecimento exigir aprovação, ele aparecerá como pendente até o responsável confirmar.</p>
-        <div class="alert success">Obrigado. Guarde esse horário e acompanhe pelo WhatsApp do estabelecimento.</div>
-        <div class="row">
-            <a class="btn" th:href="@{/b/{slug}(slug=${establishment.slug})}">Voltar para a página</a>
-            <a class="btn secondary" th:if="${establishment.phone != null}" th:href="'https://wa.me/' + ${#strings.replace(#strings.replace(#strings.replace(#strings.replace(establishment.phone, '(', ''), ')', ''), '-', ''), ' ', '')}">Chamar no WhatsApp</a>
-        </div>
+<main class="container hero public-flow">
+    <section class="public-hero">
+        <article class="card hero-card">
+            <span class="badge completed">Pedido recebido</span>
+            <h1>Seu agendamento foi enviado</h1>
+            <p class="muted">Se o horario depender de aprovacao, ele fica temporariamente reservado enquanto o estabelecimento analisa.</p>
+            <div class="alert success">Horarios confirmados ou pendentes ficam indisponiveis. Se a reserva for recusada, o horario volta a ficar disponivel para outros clientes.</div>
+            <div class="row">
+                <a class="btn" th:href="@{/b/{slug}(slug=${establishment.slug})}">Voltar para a pagina</a>
+                <a class="btn secondary"
+                   th:if="${establishment.phone != null}"
+                   th:href="'https://wa.me/' + ${#strings.replace(#strings.replace(#strings.replace(#strings.replace(establishment.phone, '(', ''), ')', ''), '-', ''), ' ', '')}">
+                    Falar no WhatsApp
+                </a>
+            </div>
+        </article>
+
+        <aside class="card hero-card">
+            <h2>O que acontece agora</h2>
+            <div class="summary-list">
+                <div class="summary-item">
+                    <strong>1. Pedido recebido</strong>
+                    <span>O estabelecimento ja recebeu sua solicitacao.</span>
+                </div>
+                <div class="summary-item">
+                    <strong>2. Confirmacao ou aprovacao</strong>
+                    <span>Clientes novos podem passar por aprovacao rapida antes da confirmacao final.</span>
+                </div>
+                <div class="summary-item">
+                    <strong>3. Contato</strong>
+                    <span>Acompanhe pelo WhatsApp informado no agendamento.</span>
+                </div>
+            </div>
+        </aside>
     </section>
 </main>
 </body>

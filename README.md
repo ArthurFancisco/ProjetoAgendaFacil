@@ -20,7 +20,7 @@ Sistema web profissional para agendamento de salões, barbearias, estética e se
 
 ## Requisitos
 
-- Java 21+
+- Java 17+
 - Maven 3.9+
 - Docker Desktop ou PostgreSQL local
 

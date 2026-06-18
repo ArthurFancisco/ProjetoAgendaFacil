@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,7 +23,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByEstablishmentIdAndDateOrderByStartTimeAsc(UUID establishmentId, LocalDate date);
 
     @EntityGraph(attributePaths = {"client", "professional", "service", "establishment"})
-    List<Appointment> findTop20ByEstablishmentIdAndStatusOrderByCreatedAtAsc(UUID establishmentId, AppointmentStatus status);
+    @Query("select a from Appointment a " +
+            "where a.establishment.id = :establishmentId " +
+            "and a.status = :status " +
+            "and (a.expiresAt is null or a.expiresAt > :now) " +
+            "order by a.date asc, a.startTime asc, a.createdAt asc")
+    List<Appointment> findPendingDashboard(@Param("establishmentId") UUID establishmentId,
+                                           @Param("status") AppointmentStatus status,
+                                           @Param("now") LocalDateTime now,
+                                           Pageable pageable);
 
     @EntityGraph(attributePaths = {"client", "professional", "service", "establishment"})
     @Query("select a from Appointment a where a.establishment.id = :establishmentId and a.date between :start and :end order by a.date asc, a.startTime asc")
@@ -42,7 +51,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @Query("select a from Appointment a where a.establishment.id = :establishmentId and a.status in :statuses order by a.date desc, a.startTime desc")
     List<Appointment> findTop20History(@Param("establishmentId") UUID establishmentId,
                                        @Param("statuses") Collection<AppointmentStatus> statuses,
-                                       org.springframework.data.domain.Pageable pageable);
+                                       Pageable pageable);
 
 
     @Query("select count(a) from Appointment a where a.establishment.id = :establishmentId and a.client.phoneNormalized = :phone and a.date >= :today and a.status in :statuses")

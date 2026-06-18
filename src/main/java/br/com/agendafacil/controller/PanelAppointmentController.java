@@ -7,7 +7,10 @@ import br.com.agendafacil.service.AuditService;
 import br.com.agendafacil.service.CurrentUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
@@ -19,7 +22,9 @@ public class PanelAppointmentController {
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
 
-    public PanelAppointmentController(AppointmentService appointmentService, CurrentUserService currentUserService, AuditService auditService) {
+    public PanelAppointmentController(AppointmentService appointmentService,
+                                      CurrentUserService currentUserService,
+                                      AuditService auditService) {
         this.appointmentService = appointmentService;
         this.currentUserService = currentUserService;
         this.auditService = auditService;
@@ -31,7 +36,7 @@ public class PanelAppointmentController {
         try {
             appointmentService.approve(id, user.getEstablishment().getId());
             auditService.record(user, user.getEstablishment(), "APROVAR_AGENDAMENTO", "Appointment", id.toString(), "Agendamento aprovado", request);
-            redirectAttributes.addFlashAttribute("successMessage", "Agendamento aprovado com segurança.");
+            redirectAttributes.addFlashAttribute("successMessage", "Agendamento aprovado com seguranca.");
         } catch (BusinessException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
@@ -39,13 +44,15 @@ public class PanelAppointmentController {
     }
 
     @PostMapping("/{id}/cancelar")
-    public String cancel(@PathVariable UUID id, @RequestParam(defaultValue = "Cancelado pelo estabelecimento") String reason,
-                         RedirectAttributes redirectAttributes, HttpServletRequest request) {
+    public String cancel(@PathVariable UUID id,
+                         @RequestParam(defaultValue = "Cancelado pelo estabelecimento") String reason,
+                         RedirectAttributes redirectAttributes,
+                         HttpServletRequest request) {
         AppUser user = currentUserService.currentUser();
         try {
             appointmentService.cancel(id, user.getEstablishment().getId(), reason);
             auditService.record(user, user.getEstablishment(), "CANCELAR_AGENDAMENTO", "Appointment", id.toString(), reason, request);
-            redirectAttributes.addFlashAttribute("successMessage", "Agendamento cancelado.");
+            redirectAttributes.addFlashAttribute("successMessage", "Agendamento atualizado e horario liberado.");
         } catch (BusinessException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
@@ -55,18 +62,26 @@ public class PanelAppointmentController {
     @PostMapping("/{id}/concluir")
     public String complete(@PathVariable UUID id, RedirectAttributes redirectAttributes, HttpServletRequest request) {
         AppUser user = currentUserService.currentUser();
-        appointmentService.complete(id, user.getEstablishment().getId());
-        auditService.record(user, user.getEstablishment(), "CONCLUIR_AGENDAMENTO", "Appointment", id.toString(), "Atendimento concluído", request);
-        redirectAttributes.addFlashAttribute("successMessage", "Atendimento concluído.");
+        try {
+            appointmentService.complete(id, user.getEstablishment().getId());
+            auditService.record(user, user.getEstablishment(), "CONCLUIR_AGENDAMENTO", "Appointment", id.toString(), "Atendimento concluido", request);
+            redirectAttributes.addFlashAttribute("successMessage", "Atendimento concluido.");
+        } catch (BusinessException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/painel";
     }
 
     @PostMapping("/{id}/faltou")
     public String noShow(@PathVariable UUID id, RedirectAttributes redirectAttributes, HttpServletRequest request) {
         AppUser user = currentUserService.currentUser();
-        appointmentService.markNoShow(id, user.getEstablishment().getId());
-        auditService.record(user, user.getEstablishment(), "MARCAR_FALTA", "Appointment", id.toString(), "Cliente faltou", request);
-        redirectAttributes.addFlashAttribute("successMessage", "Falta registrada no histórico do cliente.");
+        try {
+            appointmentService.markNoShow(id, user.getEstablishment().getId());
+            auditService.record(user, user.getEstablishment(), "MARCAR_FALTA", "Appointment", id.toString(), "Cliente faltou", request);
+            redirectAttributes.addFlashAttribute("successMessage", "Falta registrada no historico do cliente.");
+        } catch (BusinessException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/painel";
     }
 }

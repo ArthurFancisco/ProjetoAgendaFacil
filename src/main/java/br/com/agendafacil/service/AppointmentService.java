@@ -2,11 +2,23 @@ package br.com.agendafacil.service;
 
 import br.com.agendafacil.dto.PublicAppointmentForm;
 import br.com.agendafacil.dto.SlotOption;
-import br.com.agendafacil.entity.*;
+import br.com.agendafacil.entity.Appointment;
+import br.com.agendafacil.entity.BlockedTime;
+import br.com.agendafacil.entity.BusinessHour;
+import br.com.agendafacil.entity.Client;
+import br.com.agendafacil.entity.Establishment;
+import br.com.agendafacil.entity.Professional;
+import br.com.agendafacil.entity.ServiceOption;
 import br.com.agendafacil.enums.AppointmentStatus;
 import br.com.agendafacil.enums.ClientStatus;
 import br.com.agendafacil.exception.BusinessException;
-import br.com.agendafacil.repository.*;
+import br.com.agendafacil.repository.AppointmentRepository;
+import br.com.agendafacil.repository.BlockedTimeRepository;
+import br.com.agendafacil.repository.BusinessHourRepository;
+import br.com.agendafacil.repository.ClientRepository;
+import br.com.agendafacil.repository.EstablishmentRepository;
+import br.com.agendafacil.repository.ProfessionalRepository;
+import br.com.agendafacil.repository.ServiceOptionRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -70,11 +82,11 @@ public class AppointmentService {
         }
 
         Establishment establishment = establishmentRepository.findById(establishmentId)
-                .orElseThrow(() -> new BusinessException("Estabelecimento não encontrado."));
+                .orElseThrow(() -> new BusinessException("Estabelecimento nao encontrado."));
         ServiceOption service = serviceOptionRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
-                .orElseThrow(() -> new BusinessException("Serviço não encontrado."));
+                .orElseThrow(() -> new BusinessException("Servico nao encontrado."));
         Professional professional = professionalRepository.findByIdAndEstablishmentId(professionalId, establishmentId)
-                .orElseThrow(() -> new BusinessException("Profissional não encontrado."));
+                .orElseThrow(() -> new BusinessException("Profissional nao encontrado."));
 
         BusinessHour hour = findBusinessHour(establishment, professional, date);
         if (hour == null) {
@@ -96,14 +108,14 @@ public class AppointmentService {
     @Transactional
     public Appointment createPublicAppointment(String slug, PublicAppointmentForm form, HttpServletRequest request) {
         Establishment establishment = establishmentRepository.findBySlugAndActiveTrue(slug)
-                .orElseThrow(() -> new BusinessException("Estabelecimento não encontrado."));
+                .orElseThrow(() -> new BusinessException("Estabelecimento nao encontrado."));
         ServiceOption service = serviceOptionRepository.findByIdAndEstablishmentIdAndActiveTrue(form.getServiceId(), establishment.getId())
-                .orElseThrow(() -> new BusinessException("Serviço indisponível."));
+                .orElseThrow(() -> new BusinessException("Servico indisponivel."));
         Professional professional = professionalRepository.findByIdAndEstablishmentId(form.getProfessionalId(), establishment.getId())
-                .orElseThrow(() -> new BusinessException("Profissional indisponível."));
+                .orElseThrow(() -> new BusinessException("Profissional indisponivel."));
 
-        if (professional.getServices().stream().noneMatch(s -> s.getId().equals(service.getId()))) {
-            throw new BusinessException("Esse profissional não realiza o serviço escolhido.");
+        if (professional.getServices().stream().noneMatch(registeredService -> registeredService.getId().equals(service.getId()))) {
+            throw new BusinessException("Esse profissional nao realiza o servico escolhido.");
         }
 
         String phoneNormalized = phoneNormalizer.normalize(form.getClientPhone());
@@ -115,13 +127,13 @@ public class AppointmentService {
         client.setPhoneOriginal(clean(form.getClientPhone(), 40));
 
         if (client.getStatus() == ClientStatus.BLOCKED) {
-            throw new BusinessException("Para marcar um novo horário, fale diretamente com o estabelecimento.");
+            throw new BusinessException("Para marcar um novo horario, fale diretamente com o estabelecimento.");
         }
 
         LocalTime endTime = form.getStartTime().plusMinutes(service.totalMinutes());
         validateInsideBusinessHours(establishment, professional, form.getDate(), form.getStartTime(), endTime);
         if (!isSlotAvailable(establishment.getId(), professional.getId(), form.getDate(), form.getStartTime(), endTime)) {
-            throw new BusinessException("Esse horário acabou de ficar indisponível. Escolha outro horário.");
+            throw new BusinessException("Esse horario acabou de ficar indisponivel. Escolha outro horario.");
         }
 
         Appointment appointment = new Appointment();
@@ -137,7 +149,10 @@ public class AppointmentService {
         appointment.setConfirmToken(UUID.randomUUID().toString());
         appointment.setCancelToken(UUID.randomUUID().toString());
 
-        boolean trustedClient = client.isPhoneVerified() && client.getStatus() == ClientStatus.NORMAL && client.getNoShowCount() < 2 && !service.isRequiresManualApproval();
+        boolean trustedClient = client.isPhoneVerified()
+                && client.getStatus() == ClientStatus.NORMAL
+                && client.getNoShowCount() < 2
+                && !service.isRequiresManualApproval();
         if (trustedClient) {
             appointment.setStatus(AppointmentStatus.CONFIRMED);
             appointment.setConfirmedAt(LocalDateTime.now());
@@ -145,28 +160,37 @@ public class AppointmentService {
             appointment.setStatus(AppointmentStatus.PENDING_APPROVAL);
             appointment.setExpiresAt(LocalDateTime.now().plusMinutes(temporaryHoldMinutes));
         }
+
         clientRepository.save(client);
         return appointmentRepository.save(appointment);
     }
 
     @Transactional
     public void approve(UUID appointmentId, UUID establishmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new BusinessException("Agendamento não encontrado."));
+        Appointment appointment = loadAppointment(appointmentId);
         ensureSameEstablishment(appointment, establishmentId);
-        if (appointment.getStatus() != AppointmentStatus.PENDING_APPROVAL) {
-            throw new BusinessException("Esse agendamento não está pendente.");
-        }
-        if (appointment.getExpiresAt() != null && appointment.getExpiresAt().isBefore(LocalDateTime.now())) {
+        requireStatus(appointment, AppointmentStatus.PENDING_APPROVAL, "Esse agendamento nao esta pendente.");
+
+        if (isExpiredPending(appointment)) {
             appointment.setStatus(AppointmentStatus.EXPIRED);
-            throw new BusinessException("Essa reserva expirou. Peça para o cliente escolher outro horário.");
+            appointment.setCancellationReason("Reserva expirada sem aprovacao");
+            throw new BusinessException("Essa reserva expirou. Peca para o cliente escolher outro horario.");
         }
-        if (!isSlotAvailable(appointment.getEstablishment().getId(), appointment.getProfessional().getId(), appointment.getDate(), appointment.getStartTime(), appointment.getEndTime(), appointment.getId())) {
-            throw new BusinessException("Conflito detectado. O horário não pode ser aprovado.");
+
+        if (!isSlotAvailable(
+                appointment.getEstablishment().getId(),
+                appointment.getProfessional().getId(),
+                appointment.getDate(),
+                appointment.getStartTime(),
+                appointment.getEndTime(),
+                appointment.getId())) {
+            throw new BusinessException("Conflito detectado. O horario nao pode ser aprovado.");
         }
+
         appointment.setStatus(AppointmentStatus.CONFIRMED);
         appointment.setConfirmedAt(LocalDateTime.now());
         appointment.setExpiresAt(null);
+        appointment.setCancellationReason(null);
         appointment.getClient().setPhoneVerified(true);
         if (appointment.getClient().getStatus() == ClientStatus.MANUAL_APPROVAL) {
             appointment.getClient().setStatus(ClientStatus.WATCHLIST);
@@ -175,28 +199,36 @@ public class AppointmentService {
 
     @Transactional
     public void cancel(UUID appointmentId, UUID establishmentId, String reason) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new BusinessException("Agendamento não encontrado."));
+        Appointment appointment = loadAppointment(appointmentId);
         ensureSameEstablishment(appointment, establishmentId);
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED && appointment.getStatus() != AppointmentStatus.PENDING_APPROVAL) {
+            throw new BusinessException("Esse agendamento nao possui acao pendente.");
+        }
+
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.setCancelledAt(LocalDateTime.now());
         appointment.setCancellationReason(clean(reason, 255));
+        appointment.setExpiresAt(null);
     }
 
     @Transactional
     public void complete(UUID appointmentId, UUID establishmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new BusinessException("Agendamento não encontrado."));
+        Appointment appointment = loadAppointment(appointmentId);
         ensureSameEstablishment(appointment, establishmentId);
+        requireStatus(appointment, AppointmentStatus.CONFIRMED, "Somente agendamentos confirmados podem ser concluidos.");
         appointment.setStatus(AppointmentStatus.COMPLETED);
+        appointment.setExpiresAt(null);
     }
 
     @Transactional
     public void markNoShow(UUID appointmentId, UUID establishmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new BusinessException("Agendamento não encontrado."));
+        Appointment appointment = loadAppointment(appointmentId);
         ensureSameEstablishment(appointment, establishmentId);
+        requireStatus(appointment, AppointmentStatus.CONFIRMED, "Somente agendamentos confirmados podem ser marcados como falta.");
+
         appointment.setStatus(AppointmentStatus.NO_SHOW);
+        appointment.setExpiresAt(null);
+
         Client client = appointment.getClient();
         client.setNoShowCount(client.getNoShowCount() + 1);
         if (client.getNoShowCount() >= 3) {
@@ -214,6 +246,11 @@ public class AppointmentService {
         appointmentRepository.expireOldPending(LocalDateTime.now(), AppointmentStatus.PENDING_APPROVAL, AppointmentStatus.EXPIRED);
     }
 
+    @Transactional
+    public void refreshExpiredPendings() {
+        expireOldPendingAppointments();
+    }
+
     private Client newClient(Establishment establishment, String name, String phoneOriginal, String phoneNormalized) {
         Client client = new Client();
         client.setEstablishment(establishment);
@@ -225,19 +262,26 @@ public class AppointmentService {
     }
 
     private BusinessHour findBusinessHour(Establishment establishment, Professional professional, LocalDate date) {
-        int day = date.getDayOfWeek().getValue();
-        return businessHourRepository.findFirstByEstablishmentIdAndProfessionalIdAndDayOfWeekAndActiveTrue(establishment.getId(), professional.getId(), day)
-                .or(() -> businessHourRepository.findFirstByEstablishmentIdAndProfessionalIsNullAndDayOfWeekAndActiveTrue(establishment.getId(), day))
+        int dayOfWeek = date.getDayOfWeek().getValue();
+        return businessHourRepository.findFirstByEstablishmentIdAndProfessionalIdAndDayOfWeekAndActiveTrue(
+                        establishment.getId(),
+                        professional.getId(),
+                        dayOfWeek
+                )
+                .or(() -> businessHourRepository.findFirstByEstablishmentIdAndProfessionalIsNullAndDayOfWeekAndActiveTrue(
+                        establishment.getId(),
+                        dayOfWeek
+                ))
                 .orElse(null);
     }
 
     private void validateInsideBusinessHours(Establishment establishment, Professional professional, LocalDate date, LocalTime start, LocalTime end) {
         if (date.isBefore(LocalDate.now())) {
-            throw new BusinessException("Não é possível agendar em data passada.");
+            throw new BusinessException("Nao e possivel agendar em data passada.");
         }
         BusinessHour hour = findBusinessHour(establishment, professional, date);
         if (hour == null || start.isBefore(hour.getOpenTime()) || end.isAfter(hour.getCloseTime())) {
-            throw new BusinessException("Horário fora do expediente do estabelecimento.");
+            throw new BusinessException("Horario fora do expediente do estabelecimento.");
         }
     }
 
@@ -249,6 +293,7 @@ public class AppointmentService {
         if (blockedTimeRepository.existsConflict(establishmentId, professionalId, date, start, end)) {
             return false;
         }
+
         boolean conflict = ignoreAppointmentId == null
                 ? appointmentRepository.existsConflict(professionalId, date, start, end, BLOCKING_STATUSES, LocalDateTime.now())
                 : appointmentRepository.existsConflictExcluding(professionalId, ignoreAppointmentId, date, start, end, BLOCKING_STATUSES, LocalDateTime.now());
@@ -261,9 +306,28 @@ public class AppointmentService {
         }
     }
 
-    private String clean(String value, int max) {
-        if (value == null) return null;
+    private Appointment loadAppointment(UUID appointmentId) {
+        return appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new BusinessException("Agendamento nao encontrado."));
+    }
+
+    private void requireStatus(Appointment appointment, AppointmentStatus expectedStatus, String message) {
+        if (appointment.getStatus() != expectedStatus) {
+            throw new BusinessException(message);
+        }
+    }
+
+    private boolean isExpiredPending(Appointment appointment) {
+        return appointment.getStatus() == AppointmentStatus.PENDING_APPROVAL
+                && appointment.getExpiresAt() != null
+                && appointment.getExpiresAt().isBefore(LocalDateTime.now());
+    }
+
+    private String clean(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
         String cleaned = value.trim().replaceAll("[<>]", "");
-        return cleaned.length() > max ? cleaned.substring(0, max) : cleaned;
+        return cleaned.length() > maxLength ? cleaned.substring(0, maxLength) : cleaned;
     }
 }

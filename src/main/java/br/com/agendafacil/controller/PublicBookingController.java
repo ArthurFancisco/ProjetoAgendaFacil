@@ -16,7 +16,12 @@ import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
@@ -54,7 +59,7 @@ public class PublicBookingController {
     public String professionals(@PathVariable String slug, @RequestParam UUID serviceId, Model model) {
         Establishment establishment = loadEstablishment(slug);
         ServiceOption service = serviceOptionRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishment.getId())
-                .orElseThrow(() -> new BusinessException("Serviço indisponível."));
+                .orElseThrow(() -> new BusinessException("Servico indisponivel."));
         List<Professional> professionals = professionalRepository.findActiveByService(establishment.getId(), serviceId);
         model.addAttribute("establishment", establishment);
         model.addAttribute("service", service);
@@ -70,10 +75,11 @@ public class PublicBookingController {
                         Model model) {
         Establishment establishment = loadEstablishment(slug);
         ServiceOption service = serviceOptionRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishment.getId())
-                .orElseThrow(() -> new BusinessException("Serviço indisponível."));
+                .orElseThrow(() -> new BusinessException("Servico indisponivel."));
         Professional professional = professionalRepository.findByIdAndEstablishmentId(professionalId, establishment.getId())
-                .orElseThrow(() -> new BusinessException("Profissional indisponível."));
+                .orElseThrow(() -> new BusinessException("Profissional indisponivel."));
         LocalDate selectedDate = date == null ? LocalDate.now() : date;
+
         model.addAttribute("establishment", establishment);
         model.addAttribute("service", service);
         model.addAttribute("professional", professional);
@@ -92,20 +98,16 @@ public class PublicBookingController {
                        @RequestParam LocalTime startTime,
                        Model model) {
         Establishment establishment = loadEstablishment(slug);
-        ServiceOption service = serviceOptionRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishment.getId())
-                .orElseThrow(() -> new BusinessException("Serviço indisponível."));
-        Professional professional = professionalRepository.findByIdAndEstablishmentId(professionalId, establishment.getId())
-                .orElseThrow(() -> new BusinessException("Profissional indisponível."));
+        ServiceOption service = loadService(establishment.getId(), serviceId);
+        Professional professional = loadProfessional(establishment.getId(), professionalId);
+
         PublicAppointmentForm form = new PublicAppointmentForm();
         form.setServiceId(serviceId);
         form.setProfessionalId(professionalId);
         form.setDate(date);
         form.setStartTime(startTime);
-        model.addAttribute("establishment", establishment);
-        model.addAttribute("service", service);
-        model.addAttribute("professional", professional);
-        model.addAttribute("form", form);
-        model.addAttribute("dateUtil", DateTimeUtil.class);
+
+        fillDataPageModel(model, establishment, service, professional, form);
         return "public/data";
     }
 
@@ -117,17 +119,21 @@ public class PublicBookingController {
                            RedirectAttributes redirectAttributes,
                            Model model) {
         Establishment establishment = loadEstablishment(slug);
+        ServiceOption service = loadService(establishment.getId(), form.getServiceId());
+        Professional professional = loadProfessional(establishment.getId(), form.getProfessionalId());
+
         if (bindingResult.hasErrors()) {
-            model.addAttribute("establishment", establishment);
+            fillDataPageModel(model, establishment, service, professional, form);
             model.addAttribute("errorMessage", "Revise os dados informados e tente novamente.");
             return "public/data";
         }
+
         try {
             Appointment appointment = appointmentService.createPublicAppointment(slug, form, request);
             redirectAttributes.addFlashAttribute("appointmentId", appointment.getId());
             return "redirect:/b/" + slug + "/sucesso/" + appointment.getId();
         } catch (BusinessException ex) {
-            model.addAttribute("establishment", establishment);
+            fillDataPageModel(model, establishment, service, professional, form);
             model.addAttribute("errorMessage", ex.getMessage());
             return "public/data";
         }
@@ -141,8 +147,30 @@ public class PublicBookingController {
         return "public/success";
     }
 
+    private void fillDataPageModel(Model model,
+                                   Establishment establishment,
+                                   ServiceOption service,
+                                   Professional professional,
+                                   PublicAppointmentForm form) {
+        model.addAttribute("establishment", establishment);
+        model.addAttribute("service", service);
+        model.addAttribute("professional", professional);
+        model.addAttribute("form", form);
+        model.addAttribute("dateUtil", DateTimeUtil.class);
+    }
+
     private Establishment loadEstablishment(String slug) {
         return establishmentRepository.findBySlugAndActiveTrue(slug)
-                .orElseThrow(() -> new BusinessException("Página de agendamento não encontrada."));
+                .orElseThrow(() -> new BusinessException("Pagina de agendamento nao encontrada."));
+    }
+
+    private ServiceOption loadService(UUID establishmentId, UUID serviceId) {
+        return serviceOptionRepository.findByIdAndEstablishmentIdAndActiveTrue(serviceId, establishmentId)
+                .orElseThrow(() -> new BusinessException("Servico indisponivel."));
+    }
+
+    private Professional loadProfessional(UUID establishmentId, UUID professionalId) {
+        return professionalRepository.findByIdAndEstablishmentId(professionalId, establishmentId)
+                .orElseThrow(() -> new BusinessException("Profissional indisponivel."));
     }
 }
