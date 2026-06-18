@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Escolha o horário</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="header">
+    <div class="container nav">
+        <a class="brand" th:href="@{/b/{slug}(slug=${establishment.slug})}" th:text="${establishment.name}">Estabelecimento</a>
+        <a class="btn ghost" th:href="@{/b/{slug}/profissionais(slug=${establishment.slug}, serviceId=${service.id})}">Voltar</a>
+    </div>
+</header>
+<main class="container hero">
+    <section class="card">
+        <span class="badge" th:text="|${service.name} com ${professional.name}|">Serviço</span>
+        <h1>Escolha o dia e horário</h1>
+        <p class="muted">Horários confirmados ou pendentes ficam indisponíveis. Se uma reserva for recusada ou cancelada, o horário volta a aparecer aqui.</p>
+        <div class="date-pills">
+            <a class="date-pill" th:each="day : ${nextDates}"
+               th:classappend="${day.equals(selectedDate)} ? ' active' : ''"
+               th:href="@{/b/{slug}/horarios(slug=${establishment.slug}, serviceId=${service.id}, professionalId=${professional.id}, date=${day})}">
+                <div th:text="${#temporals.format(day, 'dd/MM')}">18/06</div>
+                <small th:text="${#temporals.format(day, 'EEE')}">qua</small>
+            </a>
+        </div>
+        <h2 th:text="|Horários de ${#temporals.format(selectedDate, 'dd/MM/yyyy')}|">Horários</h2>
+        <div class="alert success">Azul = disponível agora. Cinza = indisponível. Assim o cliente entende rápido e evita erro.</div>
+        <div class="slot-list">
+            <a th:each="slot : ${slots}"
+               th:if="${slot.available()}"
+               class="slot available"
+               th:text="${#temporals.format(slot.startTime(), 'HH:mm')}"
+               th:href="@{/b/{slug}/dados(slug=${establishment.slug}, serviceId=${service.id}, professionalId=${professional.id}, date=${slot.date()}, startTime=${slot.startTime()})}">09:00</a>
+            <span th:each="slot : ${slots}" th:if="${!slot.available()}" class="slot disabled" th:text="${#temporals.format(slot.startTime(), 'HH:mm')}">09:00</span>
+        </div>
+        <div class="alert warning" th:if="${#lists.isEmpty(slots)}">Não há horários para este dia.</div>
+    </section>
+</main>
+</body>
+</html>

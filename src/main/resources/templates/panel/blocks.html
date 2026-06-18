@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bloqueios - AgendaFácil Pro</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="panel-layout">
+    <aside class="sidebar">
+        <h2>AgendaFácil</h2>
+        <a th:href="@{/painel}">Agenda</a>
+        <a th:href="@{/painel/servicos}">Serviços</a>
+        <a th:href="@{/painel/profissionais}">Profissionais</a>
+        <a th:href="@{/painel/bloqueios}">Bloqueios</a>
+        <form th:action="@{/logout}" method="post" style="margin-top:16px"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="btn danger full" type="submit">Sair</button></form>
+    </aside>
+    <main class="content">
+        <h1>Bloqueios de horário</h1>
+        <p class="muted">Use para folgas, almoço, curso, manutenção ou qualquer período em que a agenda não deve aceitar marcações.</p>
+        <div class="grid">
+            <section class="col-5 card">
+                <h2>Novo bloqueio</h2>
+                <form th:action="@{/painel/bloqueios}" th:object="${form}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <div class="field">
+                        <label>Profissional</label>
+                        <select th:field="*{professionalId}">
+                            <option value="">Todos</option>
+                            <option th:each="professional : ${professionals}" th:value="${professional.id}" th:text="${professional.name}">João</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Data</label><input th:field="*{date}" type="date" required></div>
+                    <div class="field"><label>Início</label><input th:field="*{startTime}" type="time" required></div>
+                    <div class="field"><label>Fim</label><input th:field="*{endTime}" type="time" required></div>
+                    <div class="field"><label>Motivo</label><input th:field="*{reason}" required placeholder="Almoço, curso, folga..."></div>
+                    <button class="btn full" type="submit">Bloquear horário</button>
+                </form>
+            </section>
+            <section class="col-7 card">
+                <h2>Últimos bloqueios</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Data</th><th>Horário</th><th>Profissional</th><th>Motivo</th></tr></thead>
+                        <tbody>
+                        <tr th:each="block : ${blocks}">
+                            <td th:text="${#temporals.format(block.date, 'dd/MM/yyyy')}">18/06/2026</td>
+                            <td><span th:text="${#temporals.format(block.startTime, 'HH:mm')}"></span> até <span th:text="${#temporals.format(block.endTime, 'HH:mm')}"></span></td>
+                            <td th:text="${block.professional != null ? block.professional.name : 'Todos'}">Todos</td>
+                            <td th:text="${block.reason}">Motivo</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(blocks)}"><td colspan="4">Nenhum bloqueio cadastrado.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

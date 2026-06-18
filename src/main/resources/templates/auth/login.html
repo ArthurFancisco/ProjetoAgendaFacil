@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrar - AgendaFácil Pro</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="container hero">
+    <div class="grid">
+        <section class="col-5 card">
+            <h1>Entrar no painel</h1>
+            <p class="muted">Área segura do estabelecimento.</p>
+            <div class="alert error" th:if="${param.error}">E-mail ou senha inválidos, ou usuário temporariamente bloqueado.</div>
+            <div class="alert success" th:if="${param.logout}">Você saiu com segurança.</div>
+            <form th:action="@{/login}" method="post" class="stack">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="field">
+                    <label for="username">E-mail</label>
+                    <input id="username" name="username" type="email" autocomplete="username" required placeholder="dono@agendafacil.local">
+                </div>
+                <div class="field">
+                    <label for="password">Senha</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Sua senha">
+                </div>
+                <button class="btn full" type="submit">Entrar</button>
+            </form>
+        </section>
+        <aside class="col-7 card">
+            <h2>Demonstração</h2>
+            <p>Use o usuário criado automaticamente no primeiro start:</p>
+            <div class="alert warning">
+                E-mail: <strong>dono@agendafacil.local</strong><br>
+                Senha: <strong>Admin@123</strong>
+            </div>
+            <p class="muted">Troque essa senha antes de qualquer teste com cliente real.</p>
+        </aside>
+    </div>
+</main>
+</body>
+</html>

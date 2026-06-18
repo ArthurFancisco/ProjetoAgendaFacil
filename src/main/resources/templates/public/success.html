@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agendamento recebido</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="container hero">
+    <section class="card">
+        <span class="badge" th:text="${establishment.name}">Estabelecimento</span>
+        <h1>Agendamento recebido</h1>
+        <p class="muted">Seu pedido foi enviado para a agenda. Se for seu primeiro horário ou se o estabelecimento exigir aprovação, ele aparecerá como pendente até o responsável confirmar.</p>
+        <div class="alert success">Obrigado. Guarde esse horário e acompanhe pelo WhatsApp do estabelecimento.</div>
+        <div class="row">
+            <a class="btn" th:href="@{/b/{slug}(slug=${establishment.slug})}">Voltar para a página</a>
+            <a class="btn secondary" th:if="${establishment.phone != null}" th:href="'https://wa.me/' + ${#strings.replace(#strings.replace(#strings.replace(#strings.replace(establishment.phone, '(', ''), ')', ''), '-', ''), ' ', '')}">Chamar no WhatsApp</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

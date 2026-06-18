@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Confirmar dados</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="header">
+    <div class="container nav">
+        <a class="brand" th:href="@{/b/{slug}(slug=${establishment.slug})}" th:text="${establishment.name}">Estabelecimento</a>
+        <a class="btn ghost" th:href="@{/b/{slug}/horarios(slug=${establishment.slug}, serviceId=${form.serviceId}, professionalId=${form.professionalId}, date=${form.date})}">Voltar</a>
+    </div>
+</header>
+<main class="container hero">
+    <div class="grid">
+        <section class="col-7 card">
+            <h1>Confirme seus dados</h1>
+            <p class="muted">Use um WhatsApp real. O estabelecimento pode aprovar clientes novos antes de confirmar o horário.</p>
+            <div class="alert error" th:if="${errorMessage}" th:text="${errorMessage}">Erro</div>
+            <form th:action="@{/b/{slug}/agendar(slug=${establishment.slug})}" th:object="${form}" method="post" class="stack" autocomplete="on">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" th:field="*{serviceId}">
+                <input type="hidden" th:field="*{professionalId}">
+                <input type="hidden" th:field="*{date}">
+                <input type="hidden" th:field="*{startTime}">
+                <div class="field hidden" aria-hidden="true">
+                    <label for="website">Site</label>
+                    <input id="website" th:field="*{website}" tabindex="-1" autocomplete="off">
+                </div>
+                <div class="field">
+                    <label for="clientName">Seu nome</label>
+                    <input id="clientName" th:field="*{clientName}" required maxlength="80" placeholder="Ex.: Lucas Silva">
+                </div>
+                <div class="field">
+                    <label for="clientPhone">WhatsApp com DDD</label>
+                    <input id="clientPhone" th:field="*{clientPhone}" required maxlength="40" data-phone placeholder="(17) 99999-9999" inputmode="tel">
+                </div>
+                <div class="field">
+                    <label for="observation">Observação opcional</label>
+                    <textarea id="observation" th:field="*{observation}" maxlength="255" placeholder="Ex.: quero corte baixo nas laterais"></textarea>
+                </div>
+                <button class="btn full" type="submit">Confirmar agendamento</button>
+            </form>
+        </section>
+        <aside class="col-5 card">
+            <h2>Resumo</h2>
+            <p><strong>Serviço:</strong> <span th:text="${service != null ? service.name : 'Serviço escolhido'}">Serviço</span></p>
+            <p><strong>Profissional:</strong> <span th:text="${professional != null ? professional.name : 'Profissional escolhido'}">Profissional</span></p>
+            <p><strong>Dia:</strong> <span th:text="${#temporals.format(form.date, 'dd/MM/yyyy')}">18/06/2026</span></p>
+            <p><strong>Horário:</strong> <span th:text="${#temporals.format(form.startTime, 'HH:mm')}">15:00</span></p>
+            <div class="alert warning">Para proteger a agenda contra horários falsos, clientes novos podem depender de aprovação rápida pelo estabelecimento.</div>
+        </aside>
+    </div>
+</main>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

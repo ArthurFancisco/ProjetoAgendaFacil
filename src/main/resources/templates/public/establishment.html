@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${establishment.name} + ' - Agendamento'">Agendamento</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="header">
+    <div class="container nav">
+        <a class="brand" th:href="@{/b/{slug}(slug=${establishment.slug})}" th:text="${establishment.name}">Estabelecimento</a>
+        <span class="badge" th:text="${establishment.city}">Cidade</span>
+    </div>
+</header>
+<main class="container hero">
+    <div class="grid">
+        <section class="col-7">
+            <h1 th:text="${establishment.name}">Barbearia</h1>
+            <p class="muted" th:text="${establishment.description}">Descrição.</p>
+            <p th:if="${establishment.address != null}"><strong>Endereço:</strong> <span th:text="${establishment.address}"></span></p>
+            <p th:if="${establishment.phone != null}"><strong>WhatsApp:</strong> <span th:text="${establishment.phone}"></span></p>
+        </section>
+        <aside class="col-5 card">
+            <h2>Como funciona</h2>
+            <p>Escolha o serviço, profissional e horário. Clientes novos podem ficar pendentes para aprovação rápida do estabelecimento.</p>
+        </aside>
+    </div>
+
+    <section class="card" style="margin-top:18px">
+        <h2>Escolha um serviço</h2>
+        <div class="grid">
+            <div class="col-4" th:each="service : ${services}">
+                <div class="card compact">
+                    <h3 th:text="${service.name}">Corte</h3>
+                    <p class="muted" th:text="${service.description}">Descrição</p>
+                    <p><strong th:text="|R$ ${#numbers.formatDecimal(service.price, 1, 2, 'COMMA')}|">R$ 35,00</strong></p>
+                    <p class="muted" th:text="${service.durationMinutes} + ' min'">30 min</p>
+                    <a class="btn full" th:href="@{/b/{slug}/profissionais(slug=${establishment.slug}, serviceId=${service.id})}">Escolher</a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

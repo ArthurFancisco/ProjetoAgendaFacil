@@ -1,0 +1,13 @@
+target/
+.env
+*.log
+*.class
+
+.idea/
+.vscode/
+.settings/
+.project
+.classpath
+
+.DS_Store
+Thumbs.db

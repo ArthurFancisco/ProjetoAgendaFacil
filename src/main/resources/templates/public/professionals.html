@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Escolha o profissional</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="header">
+    <div class="container nav">
+        <a class="brand" th:href="@{/b/{slug}(slug=${establishment.slug})}" th:text="${establishment.name}">Estabelecimento</a>
+        <a class="btn ghost" th:href="@{/b/{slug}(slug=${establishment.slug})}">Voltar</a>
+    </div>
+</header>
+<main class="container hero">
+    <section class="card">
+        <span class="badge" th:text="${service.name}">Serviço</span>
+        <h1>Escolha o profissional</h1>
+        <p class="muted">Mostramos apenas profissionais que fazem o serviço escolhido.</p>
+        <div class="grid">
+            <div class="col-4" th:each="professional : ${professionals}">
+                <div class="card compact">
+                    <h3 th:text="${professional.name}">João</h3>
+                    <p class="muted" th:text="${professional.phone}">Telefone</p>
+                    <a class="btn full" th:href="@{/b/{slug}/horarios(slug=${establishment.slug}, serviceId=${service.id}, professionalId=${professional.id})}">Ver horários</a>
+                </div>
+            </div>
+        </div>
+        <div class="alert warning" th:if="${#lists.isEmpty(professionals)}">Nenhum profissional ativo para este serviço.</div>
+    </section>
+</main>
+</body>
+</html>

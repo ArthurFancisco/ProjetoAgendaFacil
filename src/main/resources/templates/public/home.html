@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AgendaFácil Pro</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="header">
+    <div class="container nav">
+        <a class="brand" href="/">AgendaFácil Pro</a>
+        <div class="nav-links">
+            <a class="btn ghost" th:href="@{/login}">Entrar no painel</a>
+            <a class="btn" th:href="@{/b/barbearia-modelo}">Ver demonstração</a>
+        </div>
+    </div>
+</header>
+<main class="container hero">
+    <div class="grid">
+        <section class="col-7">
+            <span class="badge">Agendamento online para serviços locais</span>
+            <h1>Agenda organizada, cliente lembrado e menos horário perdido.</h1>
+            <p class="muted">Sistema para salões, barbearias, estética e profissionais autônomos controlarem horários com segurança, página pública e painel simples.</p>
+            <div class="row">
+                <a class="btn" th:href="@{/b/barbearia-modelo}">Testar como cliente</a>
+                <a class="btn secondary" th:href="@{/login}">Acessar painel</a>
+            </div>
+        </section>
+        <aside class="col-5 card">
+            <h2>Proteções do MVP</h2>
+            <div class="stack">
+                <p>Identificação por telefone normalizado.</p>
+                <p>Limite de tentativas por telefone e IP.</p>
+                <p>Cliente novo entra como pendente para aprovação.</p>
+                <p>Histórico de faltas, observação e bloqueio.</p>
+                <p>Validação de conflito feita no back-end.</p>
+            </div>
+        </aside>
+    </div>
+</main>
+<footer class="container footer">AgendaFácil Pro — base profissional para evoluir com clientes reais.</footer>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">Erro</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="container hero">
+    <section class="card">
+        <h1 th:text="${title}">Não foi possível continuar</h1>
+        <p class="muted" th:text="${message}">Tente novamente.</p>
+        <a class="btn" href="/">Voltar ao início</a>
+    </section>
+</main>
+</body>
+</html>
